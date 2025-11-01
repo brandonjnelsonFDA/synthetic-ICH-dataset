@@ -52,8 +52,8 @@ def generate_thumbnail(case_id, metadata, dataset_location):
         )
     ax.axis("off")
     fig.canvas.draw()
-    img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    img = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+    img = img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
     plt.close(fig)
     return img
 
@@ -83,7 +83,8 @@ def main():
     load_dotenv()
     dataset_location = Path(os.environ.get("DATA", None))
     metadata = pd.read_csv(dataset_location / "RST_3000.csv")
-
+    for exc in ['GlobalSeed', 'CaseSeed']:
+        metadata.pop(exc)
     sns.pairplot(metadata)
     plt.savefig("synthetic_ich_pairplot.png")
 
