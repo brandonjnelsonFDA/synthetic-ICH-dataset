@@ -88,7 +88,12 @@ def main():
     sns.pairplot(metadata)
     plt.savefig("synthetic_ich_pairplot.png")
 
-    case_ids = metadata.CaseID.unique()[: args.num_cases]
+    all_case_ids = metadata.CaseID.unique()
+    case_ids = [
+        case_id
+        for case_id in all_case_ids
+        if len(list((dataset_location / case_id / "dicoms").rglob("*.dcm"))) > 0
+    ][: args.num_cases]
     num_montages = int(np.ceil(len(case_ids) / args.cases_per_montage))
 
     for i in range(num_montages):
@@ -100,18 +105,15 @@ def main():
         fig, axes = plt.subplots(
             num_rows, args.num_columns, figsize=(args.num_columns * 2, num_rows * 2)
         )
+        axes = axes.flatten()
         for ax_idx, case_id in enumerate(montage_case_ids):
-            row_idx = ax_idx // args.num_columns
-            col_idx = ax_idx % args.num_columns
-            ax = axes[row_idx, col_idx]
+            ax = axes[ax_idx]
             img = generate_thumbnail(case_id, metadata, dataset_location)
             ax.imshow(img)
             ax.axis("off")
 
         for ax_idx in range(len(montage_case_ids), num_rows * args.num_columns):
-            row_idx = ax_idx // args.num_columns
-            col_idx = ax_idx % args.num_columns
-            axes[row_idx, col_idx].axis("off")
+            axes[ax_idx].axis("off")
 
         plt.tight_layout()
         if num_montages == 1:
