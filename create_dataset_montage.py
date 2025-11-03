@@ -26,6 +26,7 @@ def generate_thumbnail(case_id, metadata, dataset_location):
     vmax = level + window // 2
 
     fig, ax = plt.subplots(figsize=(2, 2))
+    fig.set_facecolor("black")
     ax.imshow(vol[midslice], cmap="gray", vmin=vmin, vmax=vmax)
 
     if mask_files:
@@ -52,8 +53,9 @@ def generate_thumbnail(case_id, metadata, dataset_location):
         )
     ax.axis("off")
     fig.canvas.draw()
-    img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    img = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+    img = img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+    img = img[:, :, 1:]  # Remove alpha channel
     plt.close(fig)
     return img
 
@@ -84,8 +86,16 @@ def main():
     dataset_location = Path(os.environ.get("DATA", None))
     metadata = pd.read_csv(dataset_location / "RST_3000.csv")
 
-    sns.pairplot(metadata)
+    plot_metadata = metadata.copy()
+    for col in plot_metadata.columns:
+        if plot_metadata[col].nunique() == 1:
+            plot_metadata.pop(col)
+    sns.pairplot(plot_metadata)
     plt.savefig("synthetic_ich_pairplot.png")
+
+    summary_stats = metadata.describe().transpose()
+    summary_stats = summary_stats[["mean", "std"]]
+    summary_stats.to_csv("synthetic_ich_summary_statistics.csv")
 
     all_case_ids = metadata.CaseID.unique()
     case_ids = [
