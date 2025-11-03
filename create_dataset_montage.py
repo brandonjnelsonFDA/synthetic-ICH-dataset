@@ -27,6 +27,7 @@ def generate_thumbnail(case_id, metadata, dataset_location):
     vmax = level + window // 2
 
     fig, ax = plt.subplots(figsize=(2, 2))
+    fig.set_facecolor("black")
     ax.imshow(vol[midslice], cmap="gray", vmin=vmin, vmax=vmax)
     ax.set_title(f"{row['CaseID'].item()}: {row['Age'].item()} yrs")
     if mask_files:
@@ -74,10 +75,22 @@ def main():
     load_dotenv()
     dataset_location = Path(os.environ.get("DATA", None))
     metadata = pd.read_csv(dataset_location / "RST_3000.csv")
+    
+    plot_metadata = metadata.copy()
     for exc in ['GlobalSeed', 'CaseSeed']:
-        metadata.pop(exc)
+        plot_metadata.pop(exc)
+    
+    for col in plot_metadata.columns:
+        if plot_metadata[col].nunique() == 1:
+            plot_metadata.pop(col)
+    sns.pairplot(plot_metadata)
+
     sns.pairplot(metadata)
     plt.savefig("synthetic_ich_pairplot.png")
+
+    summary_stats = metadata.describe().transpose()
+    summary_stats = summary_stats[["mean", "std"]]
+    summary_stats.to_csv("synthetic_ich_summary_statistics.csv")
 
     all_case_ids = metadata.CaseID.unique()
     case_ids = [
