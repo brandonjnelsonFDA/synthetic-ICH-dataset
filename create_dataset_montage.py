@@ -9,6 +9,7 @@ import seaborn as sns
 import SimpleITK as sitk
 from dotenv import load_dotenv
 from scipy.ndimage import center_of_mass
+from tqdm import tqdm
 
 
 def generate_thumbnail(case_id, metadata, dataset_location):
@@ -27,33 +28,23 @@ def generate_thumbnail(case_id, metadata, dataset_location):
 
     fig, ax = plt.subplots(figsize=(2, 2))
     ax.imshow(vol[midslice], cmap="gray", vmin=vmin, vmax=vmax)
-
+    ax.set_title(f"{row['CaseID'].item()}: {row['Age'].item()} yrs")
     if mask_files:
         coords = center_of_mass(mask[midslice])
         coords = np.array(coords)[::-1]
-        ann_str = f"{row['CaseID'].item()}: {row['LesionVolume(mL)'].item():2.1f} mL {row['LesionAttenuation(HU)'].item():2.0f} HU {row['Subtype'].item()}"
+        ann_str = f"{row['Subtype'].item()}: {row['LesionVolume(mL)'].item():2.1f} mL {row['LesionAttenuation(HU)'].item():2.0f} HU"
         ax.annotate(
             ann_str,
             coords,
             arrowprops=dict(facecolor="red", shrink=0.05),
-            xytext=coords - np.array(50),
-            color="red",
-        )
-    else:
-        ann_str = f"{row['CaseID'].item()}"
-        ax.annotate(
-            ann_str,
-            (vol.shape[2] // 2, 0),
-            xytext=(0, -20),
-            textcoords="offset points",
-            ha="center",
-            va="bottom",
+            xytext=(10, 450),
             color="red",
         )
     ax.axis("off")
     fig.canvas.draw()
     img = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
     img = img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+    img = img[:, :, 1:]  # Remove alpha channel
     plt.close(fig)
     return img
 
@@ -103,10 +94,11 @@ def main():
 
         num_rows = int(np.ceil(len(montage_case_ids) / args.num_columns))
         fig, axes = plt.subplots(
-            num_rows, args.num_columns, figsize=(args.num_columns * 2, num_rows * 2)
+            num_rows, args.num_columns, figsize=(args.num_columns * 2, num_rows * 2),
+            gridspec_kw=dict(wspace=0, hspace=0)
         )
         axes = axes.flatten()
-        for ax_idx, case_id in enumerate(montage_case_ids):
+        for ax_idx, case_id in tqdm(enumerate(montage_case_ids), total=len(montage_case_ids)):
             ax = axes[ax_idx]
             img = generate_thumbnail(case_id, metadata, dataset_location)
             ax.imshow(img)

@@ -5,3 +5,4 @@ dotenv
 seaborn
 scipy
 SimpleITK
+tqdm
