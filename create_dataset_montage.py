@@ -85,12 +85,17 @@ def main():
     load_dotenv()
     dataset_location = Path(os.environ.get("DATA", None))
     metadata = pd.read_csv(dataset_location / "RST_3000.csv")
-
+    
     plot_metadata = metadata.copy()
+    for exc in ['GlobalSeed', 'CaseSeed']:
+        plot_metadata.pop(exc)
+    
     for col in plot_metadata.columns:
         if plot_metadata[col].nunique() == 1:
             plot_metadata.pop(col)
     sns.pairplot(plot_metadata)
+
+    sns.pairplot(metadata)
     plt.savefig("synthetic_ich_pairplot.png")
 
     summary_stats = metadata.describe().transpose()
