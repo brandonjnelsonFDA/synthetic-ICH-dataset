@@ -85,22 +85,29 @@ def main():
     load_dotenv()
     dataset_location = Path(os.environ.get("DATA", None))
     metadata = pd.read_csv(dataset_location / "RST_3000.csv")
-    
+
     plot_metadata = metadata.copy()
-    for exc in ['GlobalSeed', 'CaseSeed']:
-        plot_metadata.pop(exc)
-    
     for col in plot_metadata.columns:
         if plot_metadata[col].nunique() == 1:
             plot_metadata.pop(col)
     sns.pairplot(plot_metadata)
-
-    sns.pairplot(metadata)
     plt.savefig("synthetic_ich_pairplot.png")
 
     summary_stats = metadata.describe().transpose()
     summary_stats = summary_stats[["mean", "std"]]
     summary_stats.to_csv("synthetic_ich_summary_statistics.csv")
+
+    categorical_cols = ["Scanner", "ReconKernel", "Subtype"]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    for i, col in enumerate(categorical_cols):
+        sns.countplot(y=col, data=metadata, ax=axes[i])
+    plt.tight_layout()
+    plt.savefig("synthetic_ich_categorical_plots.png")
+
+    categorical_summary = (
+        metadata[categorical_cols].apply(lambda x: x.value_counts()).transpose()
+    )
+    categorical_summary.to_csv("synthetic_ich_categorical_summary.csv")
 
     all_case_ids = metadata.CaseID.unique()
     case_ids = [
